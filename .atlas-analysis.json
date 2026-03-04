@@ -1,0 +1,80 @@
+{
+  "projectType": "frontend",
+  "projectName": "Paginator",
+  "projectDescription": "Angular-based web application for managing and visualizing large datasets through pagination and filters",
+  "theme": "palm",
+  "primaryColor": "#DD0031",
+  "lightColor": "#F05545",
+  "darkColor": "#C3002F",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Components",
+        "pages": [
+          "components/overview",
+          "components/filters",
+          "components/pagination",
+          "components/table",
+          "components/header",
+          "components/loading"
+        ]
+      },
+      {
+        "group": "Services",
+        "pages": [
+          "services/locations-service",
+          "services/theme-service",
+          "services/loading-service"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/filtering-data",
+          "guides/pagination",
+          "guides/theme-customization",
+          "guides/query-parameters"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development/project-structure",
+          "development/testing",
+          "development/deployment"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Dynamic pagination with configurable page sizes",
+    "State-based filtering system",
+    "Dark/light theme switching",
+    "Query parameter state management",
+    "Loading interceptor for HTTP requests",
+    "Responsive Bootstrap 5 UI"
+  ],
+  "publicApiSurface": [
+    "FiltersComponent",
+    "PaginationComponent",
+    "TableComponent",
+    "HeaderComponent",
+    "LoadingComponent",
+    "LocationsService",
+    "ThemeService",
+    "LoadingService",
+    "LoadingInterceptor",
+    "City interface",
+    "State interface",
+    "Pagination interface",
+    "CityFilters interface"
+  ]
+}
