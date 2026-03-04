@@ -1,0 +1,204 @@
+---
+title: Testing
+description: Learn how to run and write tests for the Paginator application
+---
+
+## Testing Framework
+
+Paginator uses the following testing stack:
+
+- **Karma** (v6.4.0): Test runner
+- **Jasmine** (v5.5.0): Testing framework
+- **Angular Testing Utilities**: Component testing tools
+
+## Running Tests
+
+### Basic Test Execution
+
+Run all unit tests in watch mode:
+
+```bash
+npm test
+```
+
+Or using Angular CLI directly:
+
+```bash
+ng test
+```
+
+This command:
+- Launches Karma test runner
+- Opens Chrome browser
+- Watches for file changes
+- Re-runs tests automatically
+
+### Running Tests with Coverage
+
+Generate a code coverage report:
+
+```bash
+ng test --no-watch --code-coverage
+```
+
+This will:
+- Run all tests once (no watch mode)
+- Generate coverage reports in `coverage/` directory
+- Display coverage summary in the terminal
+
+The project maintains **up to 90% code coverage** across components and services.
+
+### Coverage Report Location
+
+After running tests with coverage, reports are available at:
+
+```
+coverage/
+├── index.html           # Open this in a browser for detailed view
+├── lcov-report/
+└── coverage.json
+```
+
+## Test Configuration
+
+### Karma Configuration
+
+Test configuration is defined in `angular.json` under the test architect:
+
+```json
+"test": {
+  "builder": "@angular-devkit/build-angular:karma",
+  "options": {
+    "polyfills": [
+      "zone.js",
+      "zone.js/testing"
+    ],
+    "tsConfig": "tsconfig.spec.json",
+    "inlineStyleLanguage": "scss",
+    "styles": [
+      "src/styles.scss"
+    ]
+  }
+}
+```
+
+### TypeScript Configuration
+
+Test-specific TypeScript settings are in `tsconfig.spec.json`.
+
+## Test File Structure
+
+All test files follow the `.spec.ts` naming convention and are located alongside their source files:
+
+```
+component-name/
+├── component-name.component.ts
+└── component-name.component.spec.ts  # Test file
+```
+
+### Existing Test Files
+
+**Core Module Tests**:
+- `src/app/core/components/loading/loading.component.spec.ts`
+- `src/app/core/services/loading.service.spec.ts`
+- `src/app/core/services/theme.service.spec.ts`
+- `src/app/core/interceptors/loading.interceptor.spec.ts`
+
+**Paginator Feature Tests**:
+- `src/app/features/paginator/components/filters/filters.component.spec.ts`
+- `src/app/features/paginator/components/header/header.component.spec.ts`
+- `src/app/features/paginator/components/pagination/pagination.component.spec.ts`
+- `src/app/features/paginator/components/table/table.component.spec.ts`
+- `src/app/features/paginator/page/home/home.component.spec.ts`
+- `src/app/features/paginator/services/locations.service.spec.ts`
+
+**Root Component Test**:
+- `src/app/app.component.spec.ts`
+
+## Writing Tests
+
+### Component Test Example
+
+Basic structure of a component test:
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MyComponent } from './my.component';
+
+describe('MyComponent', () => {
+  let component: MyComponent;
+  let fixture: ComponentFixture<MyComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ MyComponent ]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(MyComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+```
+
+### Service Test Example
+
+Basic structure of a service test:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { MyService } from './my.service';
+
+describe('MyService', () => {
+  let service: MyService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(MyService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+```
+
+## Test Polyfills
+
+The following polyfills are automatically included for testing:
+
+- `zone.js`: Angular's zone-based change detection
+- `zone.js/testing`: Testing utilities for zones
+
+## Best Practices
+
+1. **Test Coverage**: Aim for at least 80% code coverage
+2. **Isolation**: Test components and services in isolation
+3. **Descriptive Names**: Use clear `describe` and `it` block names
+4. **Setup/Teardown**: Use `beforeEach` and `afterEach` appropriately
+5. **Mock Dependencies**: Mock external dependencies and services
+6. **Test User Interactions**: Test component interactions and events
+7. **Async Testing**: Use `async` and `fakeAsync` for asynchronous operations
+
+## Continuous Testing
+
+For development, keep tests running in watch mode:
+
+```bash
+npm test
+```
+
+This provides immediate feedback as you code and helps catch regressions early.
+
+## Debugging Tests
+
+When Karma launches Chrome, click the "Debug" button to:
+- Open Chrome DevTools
+- Set breakpoints in your test code
+- Step through test execution
+- Inspect variables and state

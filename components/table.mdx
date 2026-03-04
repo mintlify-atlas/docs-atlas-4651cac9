@@ -1,0 +1,205 @@
+---
+title: Table Component
+description: Data table for displaying city information
+---
+
+The `TableComponent` is a simple, performant component for displaying city data in a responsive table format. It uses Bootstrap styling and Angular's default change detection.
+
+## Location
+
+`src/app/features/paginator/components/table/table.component.ts`
+
+## Component Selector
+
+```html
+<app-table></app-table>
+```
+
+## Inputs
+
+<ParamField path="cities" type="City[]" default="[]">
+  Array of city objects to display in the table. Each city object contains:
+  ```typescript
+  interface City {
+    city_dane_code: string;   // City DANE code
+    city: string;             // City name
+    state_dane_code: string;  // State DANE code
+    state: string;            // State name
+    id: string;               // Unique identifier
+  }
+  ```
+</ParamField>
+
+## Configuration
+
+The component is configured with:
+
+```typescript
+@Component({
+  selector: 'app-table',
+  templateUrl: './table.component.html',
+  styleUrls: ['./table.component.scss'],
+  standalone: false,
+  changeDetection: ChangeDetectionStrategy.Default,
+})
+```
+
+- **Change Detection**: Uses `ChangeDetectionStrategy.Default` for automatic change detection
+- **Standalone**: Configured as a non-standalone component (module-based)
+
+## Template Structure
+
+The component template (`table.component.html`) renders a responsive Bootstrap table:
+
+```html
+<div class="table-responsive h-100">
+  <table class="table w-100 table-hover">
+    <caption>List of cities</caption>
+    <thead class="fw-bold text-uppercase">
+      <tr>
+        <th class="w-50 fw-bold">Nombre</th>
+        <th class="w-50 fw-bold">Estado</th>
+      </tr>
+    </thead>
+    <tbody *ngIf="cities.length > 0">
+      <tr *ngFor="let city of cities ?? []">
+        <td>{{ city.city }}</td>
+        <td>{{ city.state }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+```
+
+## Features
+
+### Responsive Design
+
+The table is wrapped in a `table-responsive` container that enables horizontal scrolling on smaller screens.
+
+### Hover Effects
+
+The `table-hover` class adds hover effects to table rows for better user interaction.
+
+### Conditional Rendering
+
+The tbody only renders when there are cities to display:
+
+```html
+<tbody *ngIf="cities.length > 0">
+```
+
+### Accessibility
+
+Includes a `<caption>` element for screen readers: "List of cities"
+
+## Data Display
+
+The table displays two columns:
+
+1. **Nombre (Name)**: The city name (`city.city`)
+2. **Estado (State)**: The state name (`city.state`)
+
+Note: While the City interface includes additional fields like `city_dane_code`, `state_dane_code`, and `id`, the table only displays the human-readable name fields.
+
+## Usage Example
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { City } from './types/location';
+import { CityService } from './services/city.service';
+
+@Component({
+  selector: 'app-city-list',
+  template: `
+    <app-table [cities]="cities"></app-table>
+  `
+})
+export class CityListComponent implements OnInit {
+  cities: City[] = [];
+
+  constructor(private cityService: CityService) {}
+
+  ngOnInit(): void {
+    this.loadCities();
+  }
+
+  loadCities(): void {
+    this.cityService.getCities().subscribe(response => {
+      this.cities = response.data;
+    });
+  }
+}
+```
+
+## Example with Sample Data
+
+```typescript
+import { Component } from '@angular/core';
+import { City } from './types/location';
+
+@Component({
+  selector: 'app-demo',
+  template: `<app-table [cities]="sampleCities"></app-table>`
+})
+export class DemoComponent {
+  sampleCities: City[] = [
+    {
+      id: '1',
+      city_dane_code: '05001',
+      city: 'Medellín',
+      state_dane_code: '05',
+      state: 'Antioquia'
+    },
+    {
+      id: '2',
+      city_dane_code: '11001',
+      city: 'Bogotá',
+      state_dane_code: '11',
+      state: 'Cundinamarca'
+    }
+  ];
+}
+```
+
+## Integration with Pagination
+
+The table component is typically used in conjunction with the pagination and filters components:
+
+```typescript
+@Component({
+  template: `
+    <app-filters
+      [states]="states"
+      (stateChanged)="onFilterChange($event)"
+      (pageSizeChanged)="onPageSizeChange($event)">
+    </app-filters>
+
+    <app-table [cities]="cities"></app-table>
+
+    <app-pagination
+      [pagination]="pagination"
+      (pageChanged)="onPageChange($event)">
+    </app-pagination>
+  `
+})
+export class PaginatorComponent {
+  cities: City[] = [];
+  states: State[] = [];
+  pagination!: Pagination;
+
+  // Methods to handle filter changes, page changes, etc.
+}
+```
+
+## Styling
+
+The component uses Bootstrap classes for styling:
+
+- `table`: Base table styling
+- `table-hover`: Hover effect on rows
+- `table-responsive`: Responsive wrapper
+- `w-100`: Full width
+- `w-50`: 50% column width
+- `fw-bold`: Bold font weight
+- `text-uppercase`: Uppercase text for headers

@@ -1,0 +1,273 @@
+---
+title: Loading Component
+description: Global loading indicator that displays during HTTP requests
+---
+
+The `LoadingComponent` provides a global loading indicator that automatically appears during HTTP requests. It integrates with the `LoadingService` and `LoadingInterceptor` to provide seamless loading feedback.
+
+## Location
+
+`src/app/core/components/loading/loading.component.ts`
+
+## Component Selector
+
+```html
+<app-loading></app-loading>
+```
+
+## Properties
+
+### loadingService
+
+```typescript
+public loadingService: LoadingService
+```
+
+Public reference to the LoadingService, injected via constructor. Made public to allow template access to the `loading$` observable.
+
+## Template Structure
+
+The component template (`loading.component.html`) displays a backdrop with a spinner:
+
+```html
+<div class="loading-backdrop" *ngIf="loadingService.loading$ | async">
+    <div class="spinner-border text-dark" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+```
+
+### Features
+
+- **Conditional Rendering**: Only displays when `loadingService.loading$` emits `true`
+- **Async Pipe**: Uses Angular's async pipe to subscribe to the loading observable
+- **Bootstrap Spinner**: Uses Bootstrap's `spinner-border` component
+- **Accessibility**: Includes hidden text for screen readers
+
+## Loading Service Integration
+
+The component subscribes to the `LoadingService` to track loading state:
+
+```typescript
+// LoadingService interface
+interface LoadingService {
+  loading$: Observable<boolean>;  // Observable of loading state
+  show(): void;                   // Increment loading counter
+  hide(): void;                   // Decrement loading counter
+}
+```
+
+### Loading Service Implementation
+
+The `LoadingService` manages a counter of in-flight HTTP requests:
+
+```typescript
+// From LoadingService (src/app/core/services/loading.service.ts)
+export class LoadingService {
+  private _loading = new BehaviorSubject<boolean>(false);
+  public readonly loading$ = this._loading.asObservable();
+
+  private requestsInFlight = 0;
+
+  show() {
+    this.requestsInFlight++;
+    this._loading.next(true);
+  }
+
+  hide() {
+    this.requestsInFlight = Math.max(this.requestsInFlight - 1, 0);
+    if (this.requestsInFlight === 0) {
+      this._loading.next(false);
+    }
+  }
+}
+```
+
+**Key Features**:
+
+- **Request Counter**: Tracks multiple simultaneous requests
+- **BehaviorSubject**: Provides immediate current state to new subscribers
+- **Safe Decrement**: Uses `Math.max()` to prevent negative counter values
+- **Auto-hide**: Only hides when all requests complete
+
+## HTTP Interceptor Integration
+
+The loading state is automatically managed by the `LoadingInterceptor`:
+
+```typescript
+// From loading.interceptor.ts (src/app/core/interceptors/loading.interceptor.ts)
+export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const loadingService = inject(LoadingService);
+  loadingService.show();
+
+  return next(req).pipe(
+    finalize(() => loadingService.hide())
+  );
+};
+```
+
+**How It Works**:
+
+1. **Request Start**: Calls `loadingService.show()` before each HTTP request
+2. **Request Complete**: Calls `loadingService.hide()` in the `finalize()` operator
+3. **Error Handling**: `finalize()` runs regardless of success or error
+
+## Usage Example
+
+### Basic Setup
+
+Place the component once at the app root level:
+
+```typescript
+// app.component.ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    <app-loading></app-loading>
+    <router-outlet></router-outlet>
+  `
+})
+export class AppComponent {}
+```
+
+### Interceptor Registration
+
+Register the loading interceptor in your app configuration:
+
+```typescript
+// app.config.ts
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(
+      withInterceptors([loadingInterceptor])
+    )
+  ]
+};
+```
+
+### Automatic Loading State
+
+Once configured, loading indicators appear automatically for all HTTP requests:
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-data',
+  template: `<div>{{ data | json }}</div>`
+})
+export class DataComponent implements OnInit {
+  data: any;
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    // Loading indicator shows automatically during this request
+    this.http.get('/api/data').subscribe(response => {
+      this.data = response;
+    });
+  }
+}
+```
+
+## Manual Loading Control
+
+You can also control loading state manually without HTTP requests:
+
+```typescript
+import { Component } from '@angular/core';
+import { LoadingService } from './core/services/loading.service';
+
+@Component({
+  selector: 'app-custom',
+  template: `<button (click)="doWork()">Process Data</button>`
+})
+export class CustomComponent {
+  constructor(private loadingService: LoadingService) {}
+
+  async doWork(): Promise<void> {
+    this.loadingService.show();
+
+    try {
+      // Perform long-running operation
+      await this.processData();
+    } finally {
+      this.loadingService.hide();
+    }
+  }
+
+  async processData(): Promise<void> {
+    // Heavy computation
+  }
+}
+```
+
+## Multiple Concurrent Requests
+
+The service handles multiple simultaneous requests correctly:
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
+
+@Component({
+  selector: 'app-multi',
+  template: `<div>Loading multiple resources...</div>`
+})
+export class MultiRequestComponent implements OnInit {
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    // Loading indicator shows until ALL requests complete
+    forkJoin([
+      this.http.get('/api/cities'),
+      this.http.get('/api/states'),
+      this.http.get('/api/metadata')
+    ]).subscribe(([cities, states, metadata]) => {
+      console.log('All data loaded');
+    });
+  }
+}
+```
+
+## Styling
+
+The loading backdrop typically uses custom CSS for full-screen overlay:
+
+```scss
+// loading.component.scss
+.loading-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+```
+
+## Accessibility
+
+The component includes proper ARIA attributes:
+
+- `role="status"` on the spinner container
+- `visually-hidden` class with "Loading..." text for screen readers
+
+## Best Practices
+
+1. **Single Instance**: Place only one `<app-loading>` component at the root level
+2. **Automatic Management**: Let the interceptor handle HTTP request loading
+3. **Manual Control**: Use `loadingService.show()/hide()` for non-HTTP operations
+4. **Always Hide**: Use try-finally blocks when manually controlling loading state
+5. **Z-Index**: Ensure the loading backdrop has a high z-index to overlay all content

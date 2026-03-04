@@ -1,0 +1,223 @@
+---
+title: 'ThemeService'
+description: 'Service for managing dark mode theme switching with localStorage persistence'
+---
+
+## Overview
+
+The `ThemeService` manages the application's theme state, providing dark mode toggling functionality with localStorage persistence. It also handles server-side rendering compatibility.
+
+**Location**: `src/app/core/services/theme.service.ts`
+
+## Properties
+
+### isDarkMode
+
+```typescript
+isDarkMode: boolean = false
+```
+
+Public property that tracks the current theme state. `true` when dark mode is active, `false` otherwise.
+
+### isBrowser
+
+```typescript
+isBrowser: boolean
+```
+
+Indicates whether the code is running in a browser environment (vs server-side rendering).
+
+## Methods
+
+### toggleDarkMode()
+
+Toggles between light and dark mode, updates the DOM, and persists the preference to localStorage.
+
+**Signature**:
+```typescript
+toggleDarkMode(): void
+```
+
+**Behavior**:
+- Toggles the `isDarkMode` property
+- Adds or removes the `dark-mode` class from the document body
+- Saves the preference to localStorage as a string
+- Only executes DOM and localStorage operations in browser environments
+
+**Example**:
+```typescript
+import { Component } from '@angular/core';
+import { ThemeService } from './core/services/theme.service';
+
+@Component({
+  selector: 'app-header',
+  template: `
+    <header>
+      <button (click)="toggleTheme()">
+        {{ themeService.isDarkMode ? 'Light Mode' : 'Dark Mode' }}
+      </button>
+    </header>
+  `
+})
+export class HeaderComponent {
+  constructor(public themeService: ThemeService) {}
+
+  toggleTheme(): void {
+    this.themeService.toggleDarkMode();
+  }
+}
+```
+
+### initializeTheme()
+
+Initializes the theme based on the user's saved preference in localStorage. Should be called on application startup.
+
+**Signature**:
+```typescript
+initializeTheme(): void
+```
+
+**Behavior**:
+- Reads the `darkMode` value from localStorage
+- Sets `isDarkMode` property based on saved preference
+- Applies the `dark-mode` class to the document body if dark mode was previously enabled
+- Only executes in browser environments
+
+**Example**:
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { ThemeService } from './core/services/theme.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent implements OnInit {
+  constructor(private themeService: ThemeService) {}
+
+  ngOnInit(): void {
+    // Initialize theme on app startup
+    this.themeService.initializeTheme();
+  }
+}
+```
+
+### currentMode
+
+Getter property that returns the current theme mode.
+
+**Signature**:
+```typescript
+get currentMode(): boolean
+```
+
+**Returns**: `boolean` - The current value of `isDarkMode`
+
+**Example**:
+```typescript
+import { Component } from '@angular/core';
+import { ThemeService } from './core/services/theme.service';
+
+@Component({
+  selector: 'app-theme-indicator',
+  template: `
+    <div>
+      Current theme: {{ currentTheme }}
+    </div>
+  `
+})
+export class ThemeIndicatorComponent {
+  constructor(private themeService: ThemeService) {}
+
+  get currentTheme(): string {
+    return this.themeService.currentMode ? 'Dark' : 'Light';
+  }
+}
+```
+
+## localStorage Integration
+
+The service persists theme preferences using the browser's localStorage API:
+
+**Storage Key**: `darkMode`
+
+**Storage Value**: String representation of boolean (`'true'` or `'false'`)
+
+**Write Operation**:
+```typescript
+localStorage.setItem('darkMode', this.isDarkMode.toString());
+```
+
+**Read Operation**:
+```typescript
+const savedMode = localStorage.getItem('darkMode') === 'true';
+```
+
+## Server-Side Rendering (SSR) Compatibility
+
+The service uses Angular's `PLATFORM_ID` injection token to detect the platform:
+
+```typescript
+import { isPlatformBrowser } from '@angular/common';
+import { Inject, PLATFORM_ID } from '@angular/core';
+
+constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+  this.isBrowser = isPlatformBrowser(this.platformId);
+}
+```
+
+All DOM and localStorage operations are wrapped in `if (this.isBrowser)` checks to prevent errors during server-side rendering.
+
+## Usage Pattern
+
+### Complete Example
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { ThemeService } from './core/services/theme.service';
+
+@Component({
+  selector: 'app-layout',
+  template: `
+    <div class="layout">
+      <nav>
+        <button 
+          (click)="toggleTheme()"
+          class="theme-toggle">
+          <span *ngIf="!themeService.isDarkMode">🌙 Dark</span>
+          <span *ngIf="themeService.isDarkMode">☀️ Light</span>
+        </button>
+      </nav>
+      <main>
+        <ng-content></ng-content>
+      </main>
+      <footer>
+        <p>Current mode: {{ getCurrentModeLabel() }}</p>
+      </footer>
+    </div>
+  `
+})
+export class LayoutComponent implements OnInit {
+  constructor(public themeService: ThemeService) {}
+
+  ngOnInit(): void {
+    // Initialize theme from saved preference
+    this.themeService.initializeTheme();
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggleDarkMode();
+  }
+
+  getCurrentModeLabel(): string {
+    return this.themeService.currentMode ? 'Dark Mode' : 'Light Mode';
+  }
+}
+```
+
+## Implementation Details
+
+- The service is provided in the root injector (`providedIn: 'root'`)
+- Uses the `dark-mode` CSS class on the `<body>` element to apply theme styles
+- Platform-aware to support Angular Universal (SSR)
+- Automatically persists user preference across sessions

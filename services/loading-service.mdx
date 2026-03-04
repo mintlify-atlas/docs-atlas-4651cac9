@@ -1,0 +1,283 @@
+---
+title: 'LoadingService'
+description: 'Service for managing global loading states during HTTP requests'
+---
+
+## Overview
+
+The `LoadingService` manages the application's loading state, tracking active HTTP requests and providing an observable stream that components can subscribe to. It works in conjunction with the `LoadingInterceptor` to automatically show and hide loading indicators.
+
+**Location**: `src/app/core/services/loading.service.ts`
+
+## Properties
+
+### loading$
+
+```typescript
+public readonly loading$: Observable<boolean>
+```
+
+Public observable that emits `true` when loading is active and `false` when all requests are complete. Components subscribe to this to show/hide loading indicators.
+
+### requestsInFlight
+
+```typescript
+private requestsInFlight: number = 0
+```
+
+Private counter tracking the number of concurrent HTTP requests in progress.
+
+## Methods
+
+### show()
+
+Increments the request counter and emits a loading state of `true`.
+
+**Signature**:
+```typescript
+show(): void
+```
+
+**Behavior**:
+- Increments `requestsInFlight` by 1
+- Emits `true` to the `loading$` observable
+- Called automatically by the `LoadingInterceptor` when an HTTP request starts
+
+### hide()
+
+Decrements the request counter and emits `false` only when all requests are complete.
+
+**Signature**:
+```typescript
+hide(): void
+```
+
+**Behavior**:
+- Decrements `requestsInFlight` by 1 (minimum value is 0)
+- Only emits `false` to `loading$` when `requestsInFlight` reaches 0
+- Called automatically by the `LoadingInterceptor` when an HTTP request completes
+
+## Usage in Components
+
+### Basic Loading Indicator
+
+```typescript
+import { Component } from '@angular/core';
+import { LoadingService } from './core/services/loading.service';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-loading-spinner',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div *ngIf="loadingService.loading$ | async" class="spinner-overlay">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  `,
+  styles: [`
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `]
+})
+export class LoadingSpinnerComponent {
+  constructor(public loadingService: LoadingService) {}
+}
+```
+
+### Using Loading State in Component Logic
+
+```typescript
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { LoadingService } from './core/services/loading.service';
+import { Subject, takeUntil } from 'rxjs';
+
+@Component({
+  selector: 'app-data-table',
+  templateUrl: './data-table.component.html'
+})
+export class DataTableComponent implements OnInit, OnDestroy {
+  isLoading = false;
+  private destroy$ = new Subject<void>();
+
+  constructor(private loadingService: LoadingService) {}
+
+  ngOnInit(): void {
+    this.loadingService.loading$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isLoading => {
+        this.isLoading = isLoading;
+        console.log('Loading state changed:', isLoading);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+
+## Integration with LoadingInterceptor
+
+The `LoadingService` is automatically integrated with HTTP requests through the `LoadingInterceptor`.
+
+**Interceptor Location**: `src/app/core/interceptors/loading.interceptor.ts`
+
+### How It Works
+
+```typescript
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { LoadingService } from '../services/loading.service';
+import { finalize } from 'rxjs';
+
+export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const loadingService = inject(LoadingService);
+  loadingService.show();
+
+  return next(req).pipe(
+    finalize(() => loadingService.hide())
+  );
+};
+```
+
+**Flow**:
+1. When an HTTP request starts, the interceptor calls `loadingService.show()`
+2. The request counter increments and `loading$` emits `true`
+3. When the request completes (success or error), `finalize()` calls `loadingService.hide()`
+4. The request counter decrements
+5. When all requests are done (counter reaches 0), `loading$` emits `false`
+
+### Registering the Interceptor
+
+```typescript
+import { ApplicationConfig } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(
+      withInterceptors([loadingInterceptor])
+    )
+  ]
+};
+```
+
+## Observable Pattern
+
+The service uses RxJS `BehaviorSubject` to manage state:
+
+```typescript
+private _loading = new BehaviorSubject<boolean>(false);
+public readonly loading$ = this._loading.asObservable();
+```
+
+**Benefits**:
+- `BehaviorSubject` provides the current value immediately to new subscribers
+- Initial state is `false` (not loading)
+- Private `_loading` subject prevents external code from directly emitting values
+- Public `loading$` observable allows components to subscribe safely
+
+## Handling Multiple Concurrent Requests
+
+The service correctly handles multiple simultaneous HTTP requests:
+
+```typescript
+// Request 1 starts: requestsInFlight = 1, loading$ emits true
+// Request 2 starts: requestsInFlight = 2, loading$ stays true
+// Request 1 ends:   requestsInFlight = 1, loading$ stays true
+// Request 2 ends:   requestsInFlight = 0, loading$ emits false
+```
+
+The `hide()` method uses `Math.max()` to prevent negative values:
+
+```typescript
+this.requestsInFlight = Math.max(this.requestsInFlight - 1, 0);
+```
+
+## Complete Example
+
+```typescript
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { LoadingService } from './core/services/loading.service';
+import { LocationsService } from './features/paginator/services/locations.service';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="app">
+      <!-- Loading overlay automatically shown during HTTP requests -->
+      <div *ngIf="loadingService.loading$ | async" class="loading-overlay">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Main content -->
+      <div class="content">
+        <button (click)="loadData()">Load Data</button>
+        <div *ngIf="data.length > 0">
+          <p *ngFor="let item of data">{{ item.state }}</p>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class AppComponent {
+  data: any[] = [];
+
+  constructor(
+    public loadingService: LoadingService,
+    private locationsService: LocationsService
+  ) {}
+
+  loadData(): void {
+    // Loading indicator automatically shown
+    this.locationsService.getStates().subscribe({
+      next: (response) => {
+        this.data = response.data;
+        // Loading indicator automatically hidden
+      },
+      error: (error) => {
+        console.error('Error:', error);
+        // Loading indicator automatically hidden even on error
+      }
+    });
+  }
+}
+```
+
+## Implementation Details
+
+- The service is provided in the root injector (`providedIn: 'root'`)
+- Uses RxJS `BehaviorSubject` for reactive state management
+- Automatically integrates with all HTTP requests via the interceptor
+- Handles concurrent requests correctly with a counter
+- No manual intervention needed - works automatically with `HttpClient`

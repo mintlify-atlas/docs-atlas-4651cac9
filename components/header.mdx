@@ -1,0 +1,197 @@
+---
+title: Header Component
+description: Application header with theme toggle functionality
+---
+
+The `HeaderComponent` displays the application logo and provides a theme toggle button for switching between light and dark modes. It integrates with the `ThemeService` to persist theme preferences.
+
+## Location
+
+`src/app/features/paginator/components/header/header.component.ts`
+
+## Component Selector
+
+```html
+<app-header></app-header>
+```
+
+## Outputs
+
+<ParamField path="themeToggled" type="EventEmitter<boolean>">
+  Emits when the theme is toggled. Emits `true` for dark mode, `false` for light mode.
+</ParamField>
+
+## Properties
+
+### logoPath
+
+```typescript
+logoPath = 'assets/logo/favicon.png';
+```
+
+Path to the application logo asset.
+
+### themeService
+
+```typescript
+public themeService: ThemeService
+```
+
+Public reference to the ThemeService, injected via constructor. Made public to allow template access for displaying current mode.
+
+## Constructor
+
+```typescript
+constructor(public themeService: ThemeService) {
+  this.themeService.initializeTheme();
+}
+```
+
+Initializes the component and calls `initializeTheme()` to restore the user's saved theme preference from localStorage.
+
+## Methods
+
+### toggleTheme()
+
+```typescript
+toggleTheme(): void {
+  this.themeService.toggleDarkMode();
+  this.themeToggled.emit(this.themeService.currentMode);
+}
+```
+
+Toggles between light and dark themes:
+
+1. Calls `ThemeService.toggleDarkMode()` to switch themes
+2. Emits the new theme state through `themeToggled` output
+
+## Template Structure
+
+The component template (`header.component.html`) displays a logo and theme toggle button:
+
+```html
+<div class="w-100 d-flex flex-row justify-content-between">
+    <div>
+        <img src="assets/logo/logo.png" alt="Logo" width="40" height="40" loading="lazy">
+    </div>
+    <div>
+        <button class="btn" (click)="toggleTheme()">
+        {{ themeService.currentMode ? 'Modo Claro' : 'Modo Oscuro' }}
+    </button>
+    </div>
+</div>
+```
+
+## Theme Service Integration
+
+The component relies on the `ThemeService` for theme management:
+
+```typescript
+// ThemeService interface
+interface ThemeService {
+  isDarkMode: boolean;
+  currentMode: boolean;  // Getter for isDarkMode
+  toggleDarkMode(): void;
+  initializeTheme(): void;
+}
+```
+
+### Theme Persistence
+
+The `ThemeService` handles:
+
+- **Initialization**: Reads theme preference from localStorage on component creation
+- **Toggle**: Updates the DOM and localStorage when theme changes
+- **State**: Provides current theme state via `currentMode` getter
+
+```typescript
+// From ThemeService
+toggleDarkMode(): void {
+  this.isDarkMode = !this.isDarkMode;
+  if (this.isBrowser) {
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+    localStorage.setItem('darkMode', this.isDarkMode.toString());
+  }
+}
+
+initializeTheme(): void {
+  if (this.isBrowser) {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    this.isDarkMode = savedMode;
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+  }
+}
+```
+
+## Usage Example
+
+```typescript
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-layout',
+  template: `
+    <app-header (themeToggled)="onThemeChange($event)"></app-header>
+    <main>
+      <!-- Application content -->
+    </main>
+  `
+})
+export class LayoutComponent {
+  onThemeChange(isDarkMode: boolean): void {
+    console.log('Theme changed to:', isDarkMode ? 'Dark' : 'Light');
+    // Optionally handle theme change in parent component
+  }
+}
+```
+
+## Standalone Usage
+
+```typescript
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  template: `<app-header></app-header>`
+})
+export class AppComponent {
+  // Header component works standalone without listening to themeToggled
+  // Theme state is managed internally by ThemeService
+}
+```
+
+## Button Behavior
+
+The theme toggle button displays different text based on the current theme:
+
+- **Dark Mode Active**: Shows "Modo Claro" (Light Mode) to indicate the action
+- **Light Mode Active**: Shows "Modo Oscuro" (Dark Mode) to indicate the action
+
+This follows the pattern of showing the action that will be performed, not the current state.
+
+## Platform Compatibility
+
+The `ThemeService` uses Angular's `PLATFORM_ID` to check if running in a browser environment before accessing `localStorage` or manipulating the DOM:
+
+```typescript
+isBrowser = isPlatformBrowser(this.platformId);
+```
+
+This ensures the component works correctly with Server-Side Rendering (SSR).
+
+## Styling
+
+The header uses Bootstrap utility classes:
+
+- `w-100`: Full width
+- `d-flex`: Flexbox container
+- `flex-row`: Horizontal layout
+- `justify-content-between`: Space between logo and button
+- `btn`: Bootstrap button styling
+
+## Assets
+
+The component references two logo assets:
+
+- `assets/logo/logo.png`: Main logo displayed in the header (40x40px)
+- `assets/logo/favicon.png`: Referenced in `logoPath` property (currently unused in template)

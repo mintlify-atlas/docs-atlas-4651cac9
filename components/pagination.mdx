@@ -1,0 +1,190 @@
+---
+title: Pagination Component
+description: Pagination controls for navigating through data pages
+---
+
+The `PaginationComponent` provides Bootstrap-styled pagination controls for navigating through paginated data. It intelligently displays a limited range of page numbers to maintain a clean UI.
+
+## Location
+
+`src/app/features/paginator/components/pagination/pagination.component.ts`
+
+## Component Selector
+
+```html
+<app-pagination></app-pagination>
+```
+
+## Inputs
+
+<ParamField path="pagination" type="Pagination" required>
+  Pagination metadata object containing:
+  ```typescript
+  interface Pagination {
+    total: number;        // Total number of records
+    totalPages: number;   // Total number of pages
+    currentPage: number;  // Current active page (1-indexed)
+    pageSize: number;     // Number of records per page
+  }
+  ```
+</ParamField>
+
+## Outputs
+
+<ParamField path="pageChanged" type="EventEmitter<number>">
+  Emits when the user navigates to a different page. Emits the new page number (1-indexed).
+</ParamField>
+
+## Properties
+
+### pages (getter)
+
+```typescript
+get pages(): number[]
+```
+
+Calculates and returns an array of page numbers to display in the pagination controls. Implements a smart range algorithm that shows:
+
+- A maximum of 5 page numbers (current page ±2)
+- Only pages within valid bounds (1 to totalPages)
+
+**Algorithm**:
+
+```typescript
+const start = Math.max(1, currentPage - 2);
+const end = Math.min(totalPages, currentPage + 2);
+const range: number[] = [];
+for (let i = start; i <= end; i++) range.push(i);
+return range;
+```
+
+**Example**: If `currentPage = 5` and `totalPages = 10`, the getter returns `[3, 4, 5, 6, 7]`.
+
+## Methods
+
+### changePage()
+
+```typescript
+changePage(page: number): void
+```
+
+Handles page navigation with validation:
+
+- Prevents navigation if page is less than 1
+- Prevents navigation if page exceeds totalPages
+- Prevents navigation if page equals currentPage (no-op)
+- Emits the new page number through `pageChanged` output
+
+<ParamField path="page" type="number">
+  The target page number to navigate to
+</ParamField>
+
+## Template Structure
+
+The component template (`pagination.component.html`) renders a Bootstrap pagination component with:
+
+- **Previous button** (`«`): Disabled when on first page
+- **Page number buttons**: Dynamic range based on the `pages` getter
+- **Next button** (`»`): Disabled when on last page
+
+```html
+<nav *ngIf="pagination && pagination.totalPages > 1" aria-label="City pagination" class="mt-4">
+  <ul class="pagination justify-content-center mb-0">
+
+    <!-- Previous Button -->
+    <li class="page-item" [class.disabled]="pagination.currentPage === 1">
+      <button
+        class="page-link"
+        (click)="changePage(pagination.currentPage - 1)"
+        [disabled]="pagination.currentPage === 1"
+        aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </button>
+    </li>
+
+    <!-- Page Numbers -->
+    <li
+      *ngFor="let page of pages"
+      class="page-item"
+      [class.active]="page === pagination.currentPage">
+      <button
+        class="page-link"
+        (click)="changePage(page)">
+        {{ page }}
+      </button>
+    </li>
+
+    <!-- Next Button -->
+    <li class="page-item" [class.disabled]="pagination.currentPage === pagination.totalPages">
+      <button
+        class="page-link"
+        (click)="changePage(pagination.currentPage + 1)"
+        [disabled]="pagination.currentPage === pagination.totalPages"
+        aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </button>
+    </li>
+
+  </ul>
+</nav>
+```
+
+## Usage Example
+
+```typescript
+import { Component } from '@angular/core';
+import { Pagination } from './types/location';
+
+@Component({
+  selector: 'app-data-view',
+  template: `
+    <app-table [cities]="cities"></app-table>
+    <app-pagination
+      [pagination]="paginationData"
+      (pageChanged)="loadPage($event)">
+    </app-pagination>
+  `
+})
+export class DataViewComponent {
+  paginationData: Pagination = {
+    total: 1120,
+    totalPages: 56,
+    currentPage: 1,
+    pageSize: 20
+  };
+
+  cities: City[] = [];
+
+  loadPage(page: number): void {
+    console.log('Loading page:', page);
+    // Fetch data for the requested page
+    this.fetchCities({ page, pageSize: this.paginationData.pageSize });
+  }
+
+  fetchCities(params: { page: number, pageSize: number }): void {
+    // API call to fetch cities
+  }
+}
+```
+
+## Conditional Rendering
+
+The pagination component only renders when:
+
+1. The `pagination` object is provided
+2. The total number of pages is greater than 1
+
+This ensures the pagination UI is hidden when there's only one page or no data:
+
+```html
+<nav *ngIf="pagination && pagination.totalPages > 1" ...>
+```
+
+## Accessibility
+
+The component includes proper ARIA attributes:
+
+- `aria-label="City pagination"` on the nav element
+- `aria-label="Previous"` and `aria-label="Next"` on navigation buttons
+- `aria-hidden="true"` on decorative chevron symbols
+- Disabled state management for better screen reader support

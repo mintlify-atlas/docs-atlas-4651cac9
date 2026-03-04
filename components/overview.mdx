@@ -1,0 +1,59 @@
+---
+title: Components Overview
+description: Overview of all UI components in the Paginator application
+---
+
+The Paginator application is built with a modular component architecture. Each component handles a specific aspect of the user interface and data presentation.
+
+## Core Components
+
+### Layout Components
+
+<Card title="Header" icon="heading" href="/components/header">
+  Application header with theme toggle functionality
+</Card>
+
+<Card title="Loading" icon="spinner" href="/components/loading">
+  Global loading indicator that displays during HTTP requests
+</Card>
+
+## Feature Components
+
+### Data Management Components
+
+<Card title="Filters" icon="filter" href="/components/filters">
+  Filter controls for state selection and page size configuration
+</Card>
+
+<Card title="Table" icon="table" href="/components/table">
+  Data table for displaying city information
+</Card>
+
+<Card title="Pagination" icon="list-ol" href="/components/pagination">
+  Pagination controls for navigating through data pages
+</Card>
+
+## Component Architecture
+
+All components follow Angular's best practices:
+
+- **Input/Output Pattern**: Components use `@Input()` for data binding and `@Output()` for event emission
+- **Reactive Forms**: Form controls use Angular's reactive forms approach
+- **TypeScript Interfaces**: Strongly typed with custom interfaces from `src/app/features/paginator/types/location.ts`
+- **Standalone**: Components are configured as standalone or module-based as needed
+
+## Component Location
+
+Components are organized by functionality:
+
+```
+src/app/
+├── core/components/          # Shared core components
+│   └── loading/              # Loading indicator
+└── features/paginator/
+    └── components/           # Feature-specific components
+        ├── filters/          # Filter component
+        ├── header/           # Header component
+        ├── pagination/       # Pagination component
+        └── table/            # Table component
+```

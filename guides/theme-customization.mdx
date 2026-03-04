@@ -1,0 +1,419 @@
+---
+title: Theme Customization
+description: Learn how to implement and customize dark mode theming in the Paginator application
+---
+
+The Paginator application includes a built-in theme system that supports light and dark modes with persistent user preferences. This guide explains how the theming system works and how to customize it.
+
+## Theme Service Overview
+
+The `ThemeService` (`src/app/core/services/theme.service.ts:1`) is a singleton service that manages theme state across the application:
+
+```typescript
+@Injectable({
+  providedIn: 'root'
+})
+export class ThemeService {
+  isDarkMode = false;
+  isBrowser: boolean;
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
+
+  toggleDarkMode(): void {
+    this.isDarkMode = !this.isDarkMode;
+
+    if (this.isBrowser) {
+      document.body.classList.toggle('dark-mode', this.isDarkMode);
+      localStorage.setItem('darkMode', this.isDarkMode.toString());
+    }
+  }
+
+  initializeTheme(): void {
+    if (this.isBrowser) {
+      const savedMode = localStorage.getItem('darkMode') === 'true';
+      this.isDarkMode = savedMode;
+      document.body.classList.toggle('dark-mode', this.isDarkMode);
+    }
+  }
+
+  get currentMode(): boolean {
+    return this.isDarkMode;
+  }
+}
+```
+
+## Key Features
+
+- **SSR-Compatible**: Uses `PLATFORM_ID` to detect browser environment
+- **Persistent Storage**: Saves preference to localStorage
+- **CSS Class-Based**: Uses `dark-mode` class on body element
+- **Reactive**: Components can bind to `currentMode` property
+
+## Using the Theme Service
+
+<Steps>
+  <Step title="Inject the Service">
+    Inject `ThemeService` into your component (`home.component.ts:23`):
+
+    ```typescript
+    export class HomeComponent implements OnInit {
+      constructor(
+        private router: Router,
+        private route: ActivatedRoute,
+        private locationService: LocationsService,
+        public themeService: ThemeService  // Make public for template access
+      ) {
+        this.themeService.initializeTheme();
+      }
+    }
+    ```
+
+    <Note>
+    Make the service `public` to access it directly in templates.
+    </Note>
+  </Step>
+
+  <Step title="Initialize Theme on App Start">
+    Call `initializeTheme()` in your component constructor (`home.component.ts:29`):
+
+    ```typescript
+    constructor(public themeService: ThemeService) {
+      this.themeService.initializeTheme();
+    }
+    ```
+
+    This loads the saved theme preference from localStorage.
+  </Step>
+
+  <Step title="Apply Theme Class to Elements">
+    Use the `currentMode` property to conditionally apply the theme class (`home.component.html:1`):
+
+    ```html
+    <div [class.dark-mode]="themeService.currentMode" class="main w-100 vh-100">
+      <!-- Your content -->
+    </div>
+    ```
+  </Step>
+
+  <Step title="Add Theme Toggle Button">
+    Create a button that calls `toggleDarkMode()`:
+
+    ```html
+    <button (click)="themeService.toggleDarkMode()" class="btn btn-secondary">
+      {{ themeService.currentMode ? 'Light Mode' : 'Dark Mode' }}
+    </button>
+    ```
+  </Step>
+</Steps>
+
+## How Theme Switching Works
+
+The `toggleDarkMode()` method (`theme.service.ts:16`) performs three actions:
+
+```typescript
+toggleDarkMode(): void {
+  // 1. Toggle the internal state
+  this.isDarkMode = !this.isDarkMode;
+
+  if (this.isBrowser) {
+    // 2. Update the CSS class on body
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+    
+    // 3. Save preference to localStorage
+    localStorage.setItem('darkMode', this.isDarkMode.toString());
+  }
+}
+```
+
+### Step-by-Step Flow
+
+1. **State Update**: Toggles `isDarkMode` boolean
+2. **CSS Update**: Adds/removes `dark-mode` class on `<body>`
+3. **Persistence**: Saves preference to localStorage as string
+
+## Theme Initialization
+
+The `initializeTheme()` method (`theme.service.ts:25`) runs on app startup:
+
+```typescript
+initializeTheme(): void {
+  if (this.isBrowser) {
+    // Read saved preference
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    
+    // Update internal state
+    this.isDarkMode = savedMode;
+    
+    // Apply CSS class
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+  }
+}
+```
+
+<Info>
+The localStorage value is stored as a string, so we check if it equals `'true'`.
+</Info>
+
+## SSR Compatibility
+
+The service uses `isPlatformBrowser` to ensure browser-specific code only runs in the browser:
+
+```typescript
+import { isPlatformBrowser } from '@angular/common';
+import { Inject, PLATFORM_ID } from '@angular/core';
+
+export class ThemeService {
+  isBrowser: boolean;
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
+
+  toggleDarkMode(): void {
+    if (this.isBrowser) {  // Only run in browser
+      // Access localStorage and DOM
+    }
+  }
+}
+```
+
+<Warning>
+Always wrap `localStorage` and `document` access in `if (this.isBrowser)` checks to prevent SSR errors.
+</Warning>
+
+## CSS Implementation
+
+The theme system uses a CSS class-based approach. Define styles for the `dark-mode` class:
+
+```scss
+// Default (light mode) styles
+.main {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+// Dark mode overrides
+.dark-mode .main {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+// Or use the :has selector
+body.dark-mode {
+  --bg-color: #1a1a1a;
+  --text-color: #ffffff;
+}
+```
+
+## Accessing Current Theme
+
+Use the `currentMode` getter (`theme.service.ts:33`) to read the current theme state:
+
+```typescript
+get currentMode(): boolean {
+  return this.isDarkMode;
+}
+```
+
+### In Templates
+
+```html
+<!-- Conditional rendering -->
+<span *ngIf="themeService.currentMode">Dark Mode Active</span>
+
+<!-- Conditional classes -->
+<div [class.dark-mode]="themeService.currentMode">
+  Content
+</div>
+
+<!-- Conditional text -->
+<button>{{ themeService.currentMode ? 'Light' : 'Dark' }}</button>
+```
+
+### In Components
+
+```typescript
+export class MyComponent {
+  constructor(private themeService: ThemeService) {}
+
+  isDark(): boolean {
+    return this.themeService.currentMode;
+  }
+}
+```
+
+## LocalStorage Key
+
+The theme preference is stored under the `darkMode` key:
+
+```typescript
+localStorage.setItem('darkMode', 'true');   // Dark mode enabled
+localStorage.setItem('darkMode', 'false');  // Light mode enabled
+```
+
+You can inspect this in browser DevTools:
+1. Open DevTools (F12)
+2. Go to Application tab
+3. Navigate to Local Storage
+4. Look for the `darkMode` key
+
+## Example Implementation
+
+Here's a complete example of using the theme service in a component:
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { ThemeService } from './services/theme.service';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    <div [class.dark-mode]="themeService.currentMode">
+      <header>
+        <h1>My App</h1>
+        <button (click)="themeService.toggleDarkMode()">
+          {{ themeService.currentMode ? '☀️' : '🌙' }}
+        </button>
+      </header>
+      <main>
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  `
+})
+export class AppComponent implements OnInit {
+  constructor(public themeService: ThemeService) {}
+
+  ngOnInit(): void {
+    // Initialize theme from localStorage
+    this.themeService.initializeTheme();
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Initialize Theme Early">
+    Call `initializeTheme()` in your root component or app initializer to prevent flash of unstyled content:
+
+    ```typescript
+    constructor(public themeService: ThemeService) {
+      this.themeService.initializeTheme();
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Make Service Public for Templates">
+    If accessing the service in templates, make it public:
+
+    ```typescript
+    constructor(public themeService: ThemeService) {}
+    ```
+  </Accordion>
+
+  <Accordion title="Use CSS Classes, Not Inline Styles">
+    Apply themes through CSS classes for better maintainability:
+
+    ```html
+    <div [class.dark-mode]="themeService.currentMode">
+    ```
+  </Accordion>
+
+  <Accordion title="Always Check Browser Platform">
+    Wrap browser-specific code in platform checks:
+
+    ```typescript
+    if (this.isBrowser) {
+      localStorage.setItem('darkMode', value);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Provide Visual Feedback">
+    Show the current theme state in your toggle button:
+
+    ```html
+    <button (click)="themeService.toggleDarkMode()">
+      {{ themeService.currentMode ? 'Switch to Light' : 'Switch to Dark' }}
+    </button>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Customization
+
+### CSS Custom Properties
+
+Use CSS variables for more flexible theming:
+
+```scss
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --border-color: #e0e0e0;
+}
+
+body.dark-mode {
+  --bg-color: #1a1a1a;
+  --text-color: #ffffff;
+  --border-color: #404040;
+}
+
+.main {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+```
+
+### Multiple Themes
+
+Extend the service to support multiple themes:
+
+```typescript
+export type Theme = 'light' | 'dark' | 'blue' | 'green';
+
+export class ThemeService {
+  currentTheme: Theme = 'light';
+
+  setTheme(theme: Theme): void {
+    document.body.className = theme;
+    localStorage.setItem('theme', theme);
+  }
+}
+```
+
+### System Preference Detection
+
+Detect user's system theme preference:
+
+```typescript
+initializeTheme(): void {
+  if (this.isBrowser) {
+    const savedMode = localStorage.getItem('darkMode');
+    
+    if (savedMode !== null) {
+      this.isDarkMode = savedMode === 'true';
+    } else {
+      // Use system preference if no saved preference
+      this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Component Architecture" icon="code" href="/components/overview">
+    Learn about the app's component structure
+  </Card>
+  <Card title="Services" icon="server" href="/services/locations-service">
+    Explore other services in the application
+  </Card>
+</CardGroup>

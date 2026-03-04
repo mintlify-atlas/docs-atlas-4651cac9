@@ -1,0 +1,162 @@
+---
+title: Project Structure
+description: Understand the organization and architecture of the Paginator Angular application
+---
+
+## Overview
+
+Paginator follows Angular 19's best practices with a modular architecture that separates core functionality from feature modules. The project uses SCSS for styling and follows a component-based structure.
+
+## Directory Structure
+
+```
+src/
+├── app/
+│   ├── core/                      # Core module (singleton services, interceptors)
+│   │   ├── components/
+│   │   │   └── loading/          # Global loading component
+│   │   ├── interceptors/
+│   │   │   └── loading.interceptor.ts
+│   │   ├── services/
+│   │   │   ├── loading.service.ts
+│   │   │   └── theme.service.ts
+│   │   └── core.module.ts
+│   │
+│   ├── features/                  # Feature modules
+│   │   └── paginator/
+│   │       ├── components/       # Feature components
+│   │       │   ├── filters/
+│   │       │   ├── header/
+│   │       │   ├── pagination/
+│   │       │   └── table/
+│   │       ├── page/
+│   │       │   └── home/         # Home page component
+│   │       ├── services/
+│   │       │   └── locations.service.ts
+│   │       ├── types/
+│   │       │   └── location.ts
+│   │       └── paginator.module.ts
+│   │
+│   ├── app.component.ts          # Root component
+│   ├── app.config.ts             # Application configuration
+│   ├── app.config.server.ts      # SSR configuration
+│   ├── app.routes.ts             # Client routes
+│   └── app.routes.server.ts      # Server routes
+│
+├── assets/                        # Static assets
+│   ├── fonts/
+│   ├── images/
+│   └── logo/
+│
+├── environments/                  # Environment configurations
+│   ├── environment.ts            # Production environment
+│   └── environment.development.ts # Development environment
+│
+├── main.ts                        # Application entry point
+├── main.server.ts                # SSR entry point
+├── server.ts                      # Express server for SSR
+├── index.html                    # HTML template
+└── styles.scss                   # Global styles
+```
+
+## Module Organization
+
+### Core Module
+
+The `core.module.ts` contains singleton services and shared functionality used throughout the application:
+
+- **Services**: Global services like `LoadingService` and `ThemeService`
+- **Interceptors**: HTTP interceptors like `LoadingInterceptor`
+- **Components**: Shared UI components like the loading indicator
+
+**Location**: `src/app/core/core.module.ts`
+
+### Paginator Feature Module
+
+The main feature module (`paginator.module.ts`) encapsulates all pagination-related functionality:
+
+- **Components**: Filters, header, pagination controls, and data table
+- **Services**: `LocationsService` for data management
+- **Types**: TypeScript interfaces and types (e.g., `Location`)
+- **Pages**: Route-level components like `HomeComponent`
+
+**Location**: `src/app/features/paginator/paginator.module.ts`
+
+## Component Structure
+
+Each component follows Angular's standard structure:
+
+```
+component-name/
+├── component-name.component.ts      # Component logic
+├── component-name.component.html    # Template
+├── component-name.component.scss    # Styles
+└── component-name.component.spec.ts # Unit tests
+```
+
+### Key Components
+
+- **FiltersComponent**: Handles data filtering UI
+- **PaginationComponent**: Pagination controls and navigation
+- **TableComponent**: Data table display
+- **HeaderComponent**: Application header
+- **LoadingComponent**: Global loading indicator
+
+## Services and Interceptors
+
+### Core Services
+
+**LoadingService** (`src/app/core/services/loading.service.ts`):
+- Manages global loading state
+- Used by the loading interceptor
+
+**ThemeService** (`src/app/core/services/theme.service.ts`):
+- Handles theme switching functionality
+
+### Feature Services
+
+**LocationsService** (`src/app/features/paginator/services/locations.service.ts`):
+- Manages location data
+- Handles API communication
+- Provides data to paginator components
+
+### Interceptors
+
+**LoadingInterceptor** (`src/app/core/interceptors/loading.interceptor.ts`):
+- Intercepts HTTP requests
+- Triggers loading indicator during API calls
+
+## Configuration Files
+
+### Angular Configuration
+
+- **angular.json**: Build configuration, assets, styles, and scripts
+- **tsconfig.json**: TypeScript compiler options
+- **tsconfig.app.json**: App-specific TypeScript settings
+- **tsconfig.spec.json**: Test-specific TypeScript settings
+
+### Application Configuration
+
+- **app.config.ts**: Client-side application providers and configuration
+- **app.config.server.ts**: Server-side rendering configuration
+
+## Routing
+
+- **app.routes.ts**: Client-side route definitions
+- **app.routes.server.ts**: Server-side route configuration for SSR
+
+## Assets
+
+Static assets are organized in the `src/assets/` directory:
+
+- **fonts/**: Custom fonts (Comfortaa)
+- **images/**: Application images
+- **logo/**: Brand logos
+
+## Best Practices
+
+1. **Separation of Concerns**: Core functionality is separated from features
+2. **Lazy Loading**: Feature modules can be lazy-loaded for better performance
+3. **Type Safety**: TypeScript interfaces defined in `types/` directories
+4. **Component Isolation**: Each component has its own directory with all related files
+5. **Environment Configuration**: Separate configs for development and production

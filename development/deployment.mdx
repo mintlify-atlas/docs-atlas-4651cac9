@@ -1,0 +1,303 @@
+---
+title: Deployment
+description: Learn how to build and deploy the Paginator application to production
+---
+
+## Build Process
+
+Paginator uses Angular CLI for building production-ready applications with server-side rendering (SSR) support.
+
+## Production Build
+
+### Building for Production
+
+Generate an optimized production build:
+
+```bash
+npm run build
+```
+
+Or using Angular CLI directly:
+
+```bash
+ng build --configuration production
+```
+
+This command:
+- Compiles TypeScript to JavaScript
+- Bundles and minifies code
+- Optimizes assets
+- Generates server and client bundles (SSR)
+- Applies production environment variables
+- Enables output hashing for cache busting
+
+### Build Output
+
+Production builds are generated in the `dist/paginator/` directory:
+
+```
+dist/paginator/
+├── browser/          # Client-side bundle
+│   ├── index.html
+│   ├── main.[hash].js
+│   ├── polyfills.[hash].js
+│   └── styles.[hash].css
+└── server/           # Server-side bundle (SSR)
+    └── server.mjs
+```
+
+**Output path**: `dist/paginator` (configured in `angular.json`)
+
+## Build Configuration
+
+### Production Configuration
+
+Production builds include the following optimizations (from `angular.json`):
+
+```json
+"production": {
+  "budgets": [
+    {
+      "type": "initial",
+      "maximumWarning": "500kB",
+      "maximumError": "1MB"
+    },
+    {
+      "type": "anyComponentStyle",
+      "maximumWarning": "4kB",
+      "maximumError": "8kB"
+    }
+  ],
+  "outputHashing": "all"
+}
+```
+
+**Key Features**:
+- **Bundle Size Budgets**: Warnings at 500kB, errors at 1MB
+- **Style Budgets**: Component styles limited to 8kB
+- **Output Hashing**: All files hashed for cache invalidation
+
+### Development Build
+
+For development builds with watch mode:
+
+```bash
+npm run watch
+```
+
+This runs:
+
+```bash
+ng build --watch --configuration development
+```
+
+**Development configuration** (from `angular.json`):
+- No optimization
+- Source maps enabled
+- License extraction disabled
+- Environment file replacement: `environment.development.ts`
+
+## Server-Side Rendering (SSR)
+
+Paginator includes full SSR support using `@angular/ssr` (v19.1.8).
+
+### SSR Configuration
+
+SSR is configured in `angular.json`:
+
+```json
+"server": "src/main.server.ts",
+"outputMode": "server",
+"ssr": {
+  "entry": "src/server.ts"
+}
+```
+
+**Key Files**:
+- `src/main.server.ts`: Server-side application entry point
+- `src/server.ts`: Express server configuration
+- `src/app/app.config.server.ts`: Server-specific providers
+
+### Running SSR Locally
+
+After building, serve the SSR application:
+
+```bash
+npm run serve:ssr:Paginator
+```
+
+This runs:
+
+```bash
+node dist/paginator/server/server.mjs
+```
+
+The Express server will serve the pre-rendered Angular application.
+
+## Environment Configuration
+
+### Environment Files
+
+Environment-specific settings are managed in:
+
+- **Production**: `src/environments/environment.ts`
+- **Development**: `src/environments/environment.development.ts`
+
+During build, Angular automatically replaces the environment file based on the configuration.
+
+### File Replacement
+
+In development builds, the production environment file is replaced:
+
+```json
+"fileReplacements": [
+  {
+    "replace": "src/environments/environment.ts",
+    "with": "src/environments/environment.development.ts"
+  }
+]
+```
+
+## Vercel Deployment
+
+The production application is deployed on **Vercel** with automatic deployments.
+
+### Live Demo
+
+Visit the production application:
+
+**URL**: [https://paginator-six.vercel.app/](https://paginator-six.vercel.app/)
+
+### Vercel Configuration
+
+Vercel automatically:
+- Detects Angular projects
+- Runs `npm run build`
+- Deploys the SSR application
+- Configures serverless functions for API endpoints
+- Provides automatic HTTPS
+- Enables CDN distribution
+
+### Deployment Workflow
+
+1. **Push to Repository**: Commit changes to the main branch
+2. **Automatic Build**: Vercel detects changes and triggers a build
+3. **Deploy**: New version is automatically deployed
+4. **Preview URLs**: Pull requests get preview deployments
+
+## Dependencies
+
+### Production Dependencies
+
+Key production packages (from `package.json`):
+
+```json
+{
+  "@angular/core": "^19.1.0",
+  "@angular/ssr": "^19.1.8",
+  "bootstrap": "^5.3.7",
+  "express": "^4.18.2",
+  "rxjs": "~7.8.0"
+}
+```
+
+### Dev Dependencies
+
+Build tools:
+
+```json
+{
+  "@angular/cli": "^19.1.8",
+  "@angular-devkit/build-angular": "^19.1.8",
+  "@angular/compiler-cli": "^19.1.0",
+  "typescript": "~5.7.2"
+}
+```
+
+## Assets and Styles
+
+### Asset Configuration
+
+Static assets included in builds (from `angular.json`):
+
+```json
+"assets": [
+  "src/assets",
+  {
+    "glob": "**/*",
+    "input": "public"
+  }
+]
+```
+
+### Global Styles
+
+Styles included in production builds:
+
+```json
+"styles": [
+  "src/styles.scss",
+  "node_modules/bootstrap/dist/css/bootstrap.min.css"
+]
+```
+
+### Scripts
+
+Third-party scripts:
+
+```json
+"scripts": [
+  "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
+]
+```
+
+## Build Optimization
+
+### Tree Shaking
+
+Unused code is automatically removed during production builds.
+
+### Minification
+
+JavaScript and CSS are minified in production builds.
+
+### Code Splitting
+
+Angular automatically splits code for optimal loading:
+- Main application bundle
+- Polyfills bundle
+- Lazy-loaded feature modules
+
+## Pre-Deployment Checklist
+
+1. **Run Tests**: `npm test -- --no-watch --code-coverage`
+2. **Check Coverage**: Ensure coverage meets standards (90%+)
+3. **Build Locally**: `npm run build`
+4. **Check Bundle Size**: Review build output for size warnings
+5. **Test SSR**: `npm run serve:ssr:Paginator`
+6. **Environment Variables**: Verify production environment settings
+7. **Commit Changes**: Push to repository for automatic deployment
+
+## Troubleshooting
+
+### Build Errors
+
+If the build fails:
+1. Clear the Angular cache: `rm -rf .angular`
+2. Reinstall dependencies: `rm -rf node_modules && npm install`
+3. Check TypeScript errors: `ng build`
+
+### Bundle Size Exceeded
+
+If bundle size exceeds limits:
+1. Review budget configuration in `angular.json`
+2. Analyze bundle with `ng build --stats-json`
+3. Use source-map-explorer to identify large dependencies
+4. Consider lazy loading for large features
+
+### SSR Issues
+
+If SSR isn't working:
+1. Check `server.ts` configuration
+2. Verify `app.config.server.ts` providers
+3. Ensure server-side compatible code (no `window` or `document` references)

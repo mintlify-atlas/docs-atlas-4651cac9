@@ -1,0 +1,162 @@
+---
+title: Filters Component
+description: Filter controls for state selection and page size configuration
+---
+
+The `FiltersComponent` provides user controls for filtering the city data by state and configuring the number of records displayed per page.
+
+## Location
+
+`src/app/features/paginator/components/filters/filters.component.ts`
+
+## Component Selector
+
+```html
+<app-filters></app-filters>
+```
+
+## Inputs
+
+<ParamField path="states" type="State[]" default="[]">
+  Array of state objects to populate the state filter dropdown. Each state object contains:
+  ```typescript
+  interface State {
+    id: string;
+    state: string;
+  }
+  ```
+</ParamField>
+
+## Outputs
+
+<ParamField path="stateChanged" type="EventEmitter<string | null>">
+  Emits when the selected state changes. Emits the state ID or `null` if "Todos" (all states) is selected.
+</ParamField>
+
+<ParamField path="pageSizeChanged" type="EventEmitter<number>">
+  Emits when the page size selection changes. Emits the selected number of records per page.
+</ParamField>
+
+## Form Controls
+
+The component uses Angular reactive forms with two form controls:
+
+### stateControl
+
+```typescript
+stateControl = new FormControl('');
+```
+
+Manages the state filter selection. Subscribes to value changes and emits through `stateChanged`.
+
+### pageSizeControl
+
+```typescript
+pageSizeControl = new FormControl<number>(10);
+```
+
+Manages the page size selection with a default value of 10. Subscribes to value changes and emits through `pageSizeChanged`.
+
+## Methods
+
+### initFromQueryParams()
+
+```typescript
+initFromQueryParams(state: string | null, pageSize: number): void
+```
+
+Initializes the form controls with values from URL query parameters without triggering change events.
+
+<ParamField path="state" type="string | null">
+  The state ID to set, or null for all states
+</ParamField>
+
+<ParamField path="pageSize" type="number">
+  The page size to set
+</ParamField>
+
+## Template Structure
+
+The component template (`filters.component.html`) renders two select dropdowns:
+
+1. **State Filter**: Displays "Todos" (all) option plus all available states
+2. **Page Size Filter**: Displays options for 10 or 20 records per page
+
+```html
+<div class="filters mb-3">
+  <div class="row g-3 align-items-end justify-content-between">
+    <div class="form-group col-12 col-md-auto flex-grow-1">
+      <label for="stateSelect">Estado:</label>
+      <select id="stateSelect" class="form-select" [formControl]="stateControl">
+        <option value="">Todos</option>
+        <option *ngFor="let state of states" [value]="state.id">
+          {{ state.state }}
+        </option>
+      </select>
+    </div>
+
+    <div class="form-group col-12 col-md-auto flex-grow-1">
+      <label for="pageSizeSelect">Registros por página:</label>
+      <select id="pageSizeSelect" class="form-select" [formControl]="pageSizeControl">
+        <option *ngFor="let size of [10, 20]" [value]="size">
+          {{ size }}
+        </option>
+      </select>
+    </div>
+  </div>
+</div>
+```
+
+## Usage Example
+
+```typescript
+import { Component } from '@angular/core';
+import { State } from './types/location';
+
+@Component({
+  selector: 'app-parent',
+  template: `
+    <app-filters
+      [states]="availableStates"
+      (stateChanged)="onStateChange($event)"
+      (pageSizeChanged)="onPageSizeChange($event)">
+    </app-filters>
+  `
+})
+export class ParentComponent {
+  availableStates: State[] = [
+    { id: '1', state: 'Antioquia' },
+    { id: '2', state: 'Cundinamarca' }
+  ];
+
+  onStateChange(stateId: string | null): void {
+    console.log('State changed to:', stateId);
+    // Fetch cities for the selected state
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    console.log('Page size changed to:', pageSize);
+    // Update pagination with new page size
+  }
+}
+```
+
+## Reactive Form Integration
+
+The component automatically subscribes to form control changes in `ngOnInit`:
+
+```typescript
+ngOnInit(): void {
+  this.stateControl.valueChanges.subscribe(value => {
+    this.stateChanged.emit(value ?? null);
+  });
+
+  this.pageSizeControl.valueChanges.subscribe(value => {
+    if (value != null) {
+      this.pageSizeChanged.emit(value);
+    }
+  });
+}
+```
+
+This ensures that parent components are notified of any filter changes in real-time.
